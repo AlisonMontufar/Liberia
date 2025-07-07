@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const API_AUTORES = 'https://localhost:32785/api/Autor';
+const API_AUTORES = 'https://localhost:32781/api/Autor';
 
 const AutoresPage = () => {
   const [autores, setAutores] = useState([]);

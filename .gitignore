@@ -55,7 +55,7 @@ build/
 # Mac system files
 .DS_Store
 
-# Windows system files
+# Windows system 
 Thumbs.db
 ehthumbs.db
 
