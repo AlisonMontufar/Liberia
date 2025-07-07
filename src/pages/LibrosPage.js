@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const API_LIBROS = 'https://localhost:32787/api/LibroMaterial';
+const API_LIBROS = 'https://libromicroservicio.somee.com';
 const API_AUTORES = 'https://localhost:32785/api/Autor';
 
 const LibrosPage = () => {
