@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const API_LIBROS = 'https://www.libromicroservicio.somee.com/api/LibroMaterial';
-const API_AUTORES = 'https://localhost:32781/api/Autor';
+const API_LIBROS = 'https://localhost:32787/api/LibroMaterial';
+const API_AUTORES = 'https://autoreslibreria.somee.com/api/Autor';
 
 const LibrosPage = () => {
   const [libros, setLibros] = useState([]);
@@ -13,18 +13,34 @@ const LibrosPage = () => {
 
   const fetchAll = async () => {
     try {
-      const [resLibros, resAutores] = await Promise.all([
-        axios.get(API_LIBROS),
-        axios.get(API_AUTORES)
-      ]);
-      setLibros(resLibros.data);
+      // 1. Obtener libros básicos
+      const resLibros = await axios.get(API_LIBROS);
+      const librosBasicos = resLibros.data;
+
+      // 2. Obtener detalles por ID
+      const detalles = await Promise.all(
+        librosBasicos.map(libro =>
+          axios
+            .get(`${API_LIBROS}/${libro.libreriaMaterialId}/detalle`)
+            .then(res => res.data)
+            .catch(() => null)
+        )
+      );
+
+      const librosConAutores = detalles.filter(l => l !== null);
+      setLibros(librosConAutores);
+
+      // 3. Obtener autores para el formulario
+      const resAutores = await axios.get(API_AUTORES);
       setAutores(resAutores.data);
     } catch (error) {
       console.error("Error al cargar datos:", error);
     }
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    fetchAll();
+  }, []);
 
   const validate = () => {
     const errs = {};
@@ -42,10 +58,8 @@ const LibrosPage = () => {
     const payload = {
       Titulo: form.titulo,
       FechaPublicacion: new Date(form.fechaPublicacion).toISOString(),
-      AutorLibros: form.autorLibros  // <-- Envío directo array de GUIDs
+      AutorLibros: form.autorLibros
     };
-
-    console.log("Payload a enviar:", payload);
 
     try {
       if (edit) {
@@ -54,6 +68,7 @@ const LibrosPage = () => {
       } else {
         await axios.post(API_LIBROS, payload);
       }
+
       setForm({ titulo: '', fechaPublicacion: '', autorLibros: [] });
       fetchAll();
     } catch (error) {
@@ -74,7 +89,7 @@ const LibrosPage = () => {
     setForm({
       titulo: libro.titulo,
       fechaPublicacion: libro.fechaPublicacion.split('T')[0],
-      autorLibros: libro.autorLibros // Aquí debe ser un array de GUIDs
+      autorLibros: libro.autores.map(a => a.autorLibroGuid) // Usamos GUIDs directamente
     });
     setErrors({});
   };
@@ -144,6 +159,7 @@ const LibrosPage = () => {
           <thead>
             <tr>
               <th>Título</th>
+              <th>Autores</th>
               <th>Fecha</th>
               <th>Acciones</th>
             </tr>
@@ -152,8 +168,12 @@ const LibrosPage = () => {
             {libros.map(l => (
               <tr key={l.libreriaMaterialId}>
                 <td>{l.titulo}</td>
+                <td>
+                  {l.autores.length > 0
+                    ? l.autores.map(a => `${a.nombre} ${a.apellido}`).join(', ')
+                    : 'Sin autores'}
+                </td>
                 <td>{new Date(l.fechaPublicacion).toLocaleDateString()}</td>
-                
                 <td>
                   <button className="btnSecondary" onClick={() => loadEdit(l)}>Editar</button>
                   <button className="btnDanger" onClick={() => handleDelete(l.libreriaMaterialId)}>Eliminar</button>
